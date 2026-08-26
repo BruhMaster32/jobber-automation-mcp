@@ -1,0 +1,42 @@
+services:
+  jobber-mcp:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - jobber_mcp_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  tunnel-client:
+    image: ghcr.io/openai/tunnel-client:v0.0.12
+    restart: unless-stopped
+    depends_on:
+      jobber-mcp:
+        condition: service_healthy
+    command:
+      - "--control-plane.api-key=file:/run/secrets/control-plane-api-key"
+      - "--control-plane.tunnel-id=${OPENAI_TUNNEL_ID:?Set OPENAI_TUNNEL_ID in .env}"
+      - "--mcp.server-url=http://jobber-mcp:8080/mcp/${MCP_PATH_TOKEN}"
+      - "--health.listen-addr=:8080"
+    environment:
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      MCP_STARTUP_WAIT_TIMEOUT: 5m
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - "${TUNNEL_KEY_FILE:?Set TUNNEL_KEY_FILE in .env}:/run/secrets/control-plane-api-key:ro"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  jobber_mcp_data:
