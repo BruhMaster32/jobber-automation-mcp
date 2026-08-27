@@ -4,7 +4,7 @@ A self-hosted MCP server that lets ChatGPT inspect Jobber data and manage contro
 
 This is an early single-owner build. It is not designed for public or multi-tenant hosting.
 
-Current release: **v0.2.0**
+Current release: **v0.2.1**
 
 ## Architecture
 
@@ -23,7 +23,7 @@ The MCP server defines the tools ChatGPT may call. The worker executes saved sch
 
 - Jobber OAuth authorization-code flow and rotating refresh-token support
 - Jobber account, client, and job queries
-- Read-only GraphQL and confirmed-mutation escape hatches
+- Read-only GraphQL and explicitly confirmed mutation escape hatches
 - SQLite persistence with WAL mode and a private database file
 - Automation create, list, get, update, activate, pause, preview, run-now, history, and delete tools
 - Manual and repeating interval triggers
@@ -40,7 +40,7 @@ The MCP server defines the tools ChatGPT may call. The worker executes saved sch
 - A Jobber mutation automation using `always` approval cannot mutate from the scheduler.
 - Its manual run requires `I CONFIRM THIS AUTOMATION RUN`.
 - A `preapproved` mutation automation can run unattended only after its complete definition is reviewed and activated.
-- Generic one-off mutations require `I CONFIRM THIS JOBBER CHANGE`.
+- Generic one-off mutations require explicit user confirmation. Accepted confirmations include `I CONFIRM THIS JOBBER CHANGE`, `I confirm`, `confirmed`, `yes`, `yes, do it`, `do it`, `approved`, and `I approve` (case-insensitive and trimmed).
 - OAuth state is hashed, single-use, and expires after ten minutes.
 - Every mutation attempt and automation result is audited.
 
