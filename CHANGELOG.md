@@ -10,6 +10,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 - Purpose-built Jobber visit and scheduling tools
 - Backup and restore commands
 
+## [0.2.1] - 2026-08-27
+
+### Changed
+
+- Jobber mutations now accept a controlled set of natural explicit confirmations such as `yes`, `do it`, `confirmed`, and `I approve`, while still requiring explicit user approval.
+- The `jobber_mutation` MCP schema now exposes confirmation as a non-empty string instead of requiring one exact literal phrase.
+- Updated GraphQL safety tests for the revised confirmation behavior.
+
 ## [0.2.0] - 2026-08-26
 
 First versioned repository release.
