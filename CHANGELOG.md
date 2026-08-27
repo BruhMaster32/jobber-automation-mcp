@@ -16,6 +16,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 - Jobber mutations now accept a controlled set of natural explicit confirmations such as `yes`, `do it`, `confirmed`, and `I approve`, while still requiring explicit user approval.
 - The `jobber_mutation` MCP schema now exposes confirmation as a non-empty string instead of requiring one exact literal phrase.
+- If ChatGPT treats a user's explicit approval as valid but the server rejects the exact wording because it is not in the local confirmation allow-list (for example, `go`), ChatGPT can retry the same approved mutation using a server-accepted canonical confirmation phrase. The user's original approval still has to be explicit; this does not allow unapproved mutations.
 - Updated GraphQL safety tests for the revised confirmation behavior.
 
 ## [0.2.0] - 2026-08-26
