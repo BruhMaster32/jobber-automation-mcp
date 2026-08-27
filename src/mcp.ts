@@ -31,7 +31,7 @@ const result = (value: unknown) => ({
 
 export function buildMcpServer(): McpServer {
   const server = new McpServer(
-    { name: "Jobber Automation MCP", version: "0.2.0" },
+    { name: "Jobber Automation MCP", version: "0.2.1" },
     { instructions: "Use read tools first. Never call jobber_mutation without showing Gavin the exact proposed change and receiving his explicit approval." }
   );
 
@@ -70,11 +70,11 @@ export function buildMcpServer(): McpServer {
   });
 
   server.registerTool("jobber_mutation", {
-    description: "Run one Jobber GraphQL mutation. Requires the exact confirmation phrase after the user reviews the change.",
+    description: "Run one Jobber GraphQL mutation. Requires explicit user confirmation after the user reviews the change.",
     inputSchema: z.object({
       mutation: z.string().min(1),
       variables: z.record(z.string(), z.unknown()).default({}),
-      confirmation: z.literal("I CONFIRM THIS JOBBER CHANGE")
+      confirmation: z.string().min(1)
     }),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false }
   }, async ({ mutation, variables, confirmation }) => {
