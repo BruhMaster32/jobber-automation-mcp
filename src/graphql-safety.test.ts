@@ -9,8 +9,12 @@ describe("GraphQL safety", () => {
   it("blocks mutations in read tool", () => {
     expect(() => requireQuery("mutation { appDisconnect { userErrors { message } } }")).toThrow();
   });
-  it("requires exact mutation confirmation", () => {
-    expect(() => requireMutation("mutation { appDisconnect { userErrors { message } } }", "yes")).toThrow();
+  it("accepts approved natural mutation confirmations", () => {
+    expect(() => requireMutation("mutation { appDisconnect { userErrors { message } } }", "yes")).not.toThrow();
+    expect(() => requireMutation("mutation { appDisconnect { userErrors { message } } }", "Do it")).not.toThrow();
     expect(() => requireMutation("mutation { appDisconnect { userErrors { message } } }", "I CONFIRM THIS JOBBER CHANGE")).not.toThrow();
+  });
+  it("rejects non-confirmation text", () => {
+    expect(() => requireMutation("mutation { appDisconnect { userErrors { message } } }", "maybe later")).toThrow();
   });
 });
