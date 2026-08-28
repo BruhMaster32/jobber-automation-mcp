@@ -4,7 +4,7 @@ A self-hosted MCP server that lets ChatGPT inspect Jobber data and manage contro
 
 This is an early single-owner build. It is not designed for public or multi-tenant hosting.
 
-Current release: **v0.2.1**
+Current release: **v0.3.0**
 
 ## Architecture
 
@@ -23,7 +23,7 @@ The MCP server defines the tools ChatGPT may call. The worker executes saved sch
 
 - Jobber OAuth authorization-code flow and rotating refresh-token support
 - Jobber account, client, and job queries
-- Read-only GraphQL and explicitly confirmed mutation escape hatches
+- Read-only GraphQL and confirmed-mutation escape hatches
 - SQLite persistence with WAL mode and a private database file
 - Automation create, list, get, update, activate, pause, preview, run-now, history, and delete tools
 - Manual and repeating interval triggers
@@ -40,11 +40,15 @@ The MCP server defines the tools ChatGPT may call. The worker executes saved sch
 - A Jobber mutation automation using `always` approval cannot mutate from the scheduler.
 - Its manual run requires `I CONFIRM THIS AUTOMATION RUN`.
 - A `preapproved` mutation automation can run unattended only after its complete definition is reviewed and activated.
-- Generic one-off mutations require explicit user confirmation. Accepted confirmations include `I CONFIRM THIS JOBBER CHANGE`, `I confirm`, `confirmed`, `yes`, `yes, do it`, `do it`, `approved`, and `I approve` (case-insensitive and trimmed).
+- Generic one-off mutations require clear explicit approval after the proposed change is shown. Accepted wording includes `yes`, `do it`, `approved`, and `I CONFIRM THIS JOBBER CHANGE`.
 - OAuth state is hashed, single-use, and expires after ten minutes.
 - Every mutation attempt and automation result is audited.
 
 ## Installation
+
+Version 0.3.0 provides a local browser installer for Windows x64, macOS Intel/Apple Silicon, Linux x64, and Raspberry Pi/Linux ARM64. Download the matching release bundle, extract it, and open **Start Setup**. The installer checks Docker, collects the Jobber and OpenAI tunnel settings, generates the private MCP path and setup secrets, starts both containers, and opens Jobber authorization.
+
+No Node.js, Git, `.env` editing, secret-generation commands, or Docker commands are required. Docker Engine with Compose remains the trusted system prerequisite; if it is missing, the wizard opens the official installation instructions.
 
 Start with the documentation that matches the task:
 
