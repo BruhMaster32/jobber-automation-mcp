@@ -9,6 +9,31 @@
 
 The images support Linux AMD64, Linux ARM64, and Apple Silicon through Docker's multi-architecture support.
 
+## Guided installation (recommended)
+
+Download the matching bundle from the GitHub release and extract it:
+
+| Host | Bundle | Open |
+| --- | --- | --- |
+| Windows x64 | `.zip` | `Start Setup.vbs` |
+| macOS Intel | `macos-x64.tar.gz` | `Jobber Automation MCP Setup.app` |
+| macOS Apple Silicon | `macos-arm64.tar.gz` | `Jobber Automation MCP Setup.app` |
+| Linux x64 | `linux-x64.tar.gz` | `Start Setup.desktop` |
+| Raspberry Pi / Linux ARM64 | `linux-arm64.tar.gz` | `Start Setup.desktop` |
+
+The bundle carries its own Node runtime. The local wizard:
+
+1. Detects Docker and opens the official platform instructions if it is missing
+2. Collects the Jobber client ID, client secret, API date, OpenAI tunnel ID, and runtime key
+3. Generates independent 64-character MCP-path and setup secrets
+4. Stores the OpenAI runtime key in a protected file outside the application source and keeps it out of `.env`
+5. Validates and starts the server and tunnel with Docker Compose
+6. Waits for health checks and opens the Jobber authorization page
+
+The wizard listens only on loopback and uses a new private session token every time it starts. Docker is deliberately not installed through an unattended privileged shell script.
+
+## Manual/headless installation
+
 ## 1. Clone and configure
 
 ```bash
