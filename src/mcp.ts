@@ -31,7 +31,7 @@ const result = (value: unknown) => ({
 
 export function buildMcpServer(): McpServer {
   const server = new McpServer(
-    { name: "Jobber Automation MCP", version: "0.2.1" },
+    { name: "Jobber Automation MCP", version: "0.3.0" },
     { instructions: "Use read tools first. Never call jobber_mutation without showing Gavin the exact proposed change and receiving his explicit approval." }
   );
 
