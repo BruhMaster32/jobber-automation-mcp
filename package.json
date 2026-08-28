@@ -1,6 +1,6 @@
 {
   "name": "jobber-automation-mcp",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.5" },
@@ -9,8 +9,9 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "check": "npm run build && npm test",
+    "installer:dev": "node installer/launcher.cjs --config installer/launcher-config.json --ui installer/ui.html --payload .",
     "smoke": "./scripts/smoke-test.sh",
-    "test": "vitest run"
+    "test": "vitest run && node --test installer/lib.node-test.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "2.0.0",
