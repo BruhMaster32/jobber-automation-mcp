@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "appId": "jobber-automation-mcp",
+  "appName": "Jobber Automation MCP",
+  "composeProject": "jobber-automation-mcp",
+  "payloadDirectory": "payload",
+  "appUrl": "http://127.0.0.1:8080",
+  "postInstallUrl": "http://127.0.0.1:8080/admin/connect?key=${SETUP_KEY}",
+  "environmentDefaults": {
+    "PORT": "8080",
+    "DATABASE_PATH": "/app/data/jobber-mcp.sqlite",
+    "AUTOMATION_POLL_SECONDS": "30",
+    "ENABLE_AUTOMATION_WORKER": "true"
+  },
+  "generatedSecrets": [
+    { "name": "MCP_PATH_TOKEN", "bytes": 32 },
+    { "name": "SETUP_KEY", "bytes": 32 }
+  ],
+  "secretFiles": [
+    { "field": "OPENAI_RUNTIME_KEY", "env": "TUNNEL_KEY_FILE", "fileName": "openai-runtime-key" }
+  ],
+  "fields": [
+    {
+      "name": "PUBLIC_BASE_URL",
+      "label": "Local callback address",
+      "type": "url",
+      "required": true,
+      "default": "http://127.0.0.1:8080",
+      "help": "Use the same address in the Jobber app callback URL: http://127.0.0.1:8080/jobber/callback",
+      "fullWidth": true
+    },
+    {
+      "name": "JOBBER_CLIENT_ID",
+      "label": "Jobber client ID",
+      "type": "text",
+      "required": true,
+      "minLength": 20,
+      "autocomplete": "off"
+    },
+    {
+      "name": "JOBBER_CLIENT_SECRET",
+      "label": "Jobber client secret",
+      "type": "password",
+      "required": true,
+      "minLength": 16,
+      "autocomplete": "new-password"
+    },
+    {
+      "name": "JOBBER_GRAPHQL_VERSION",
+      "label": "Jobber API date",
+      "type": "text",
+      "required": true,
+      "default": "2025-04-16",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "placeholder": "YYYY-MM-DD"
+    },
+    {
+      "name": "OPENAI_TUNNEL_ID",
+      "label": "OpenAI tunnel ID",
+      "type": "text",
+      "required": true,
+      "pattern": "^tunnel_[A-Za-z0-9]+$",
+      "placeholder": "tunnel_...",
+      "autocomplete": "off"
+    },
+    {
+      "name": "OPENAI_RUNTIME_KEY",
+      "label": "OpenAI tunnel runtime key",
+      "type": "password",
+      "required": true,
+      "minLength": 20,
+      "autocomplete": "new-password",
+      "fullWidth": true,
+      "help": "Stored in a protected file outside the application source. It is never written to .env."
+    }
+  ]
+}

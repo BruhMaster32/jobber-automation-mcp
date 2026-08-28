@@ -15,9 +15,7 @@ export function requireQuery(source: string): void {
 
 export function requireMutation(source: string, confirmation: string): void {
   if (operationType(source) !== "mutation") throw new Error("This tool accepts mutations only.");
-
   const normalized = confirmation.trim().toLowerCase();
-
   const acceptedConfirmations = new Set([
     "i confirm this jobber change",
     "i confirm",
@@ -28,7 +26,6 @@ export function requireMutation(source: string, confirmation: string): void {
     "approved",
     "i approve"
   ]);
-
   if (!acceptedConfirmations.has(normalized)) {
     throw new Error("Mutation blocked: explicit confirmation was not supplied.");
   }
