@@ -65,7 +65,7 @@ export async function runAutomation(
     return { runId: run.id, status: "previewed", output };
   }
 
-  const hasMutation = automation.actions.some(action => action.type === "jobber.mutation");
+  const hasMutation = automation.actions.some(action => action.type === "jobber.mutation" || action.type === "jobber.carryoverMowing");
   const approved = automation.approvalPolicy === "preapproved" || confirmation === "I CONFIRM THIS AUTOMATION RUN";
   if (hasMutation && !approved) {
     const output = { blocked: true, reason: "This run contains a Jobber mutation and needs approval." };
