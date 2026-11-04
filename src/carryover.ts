@@ -36,15 +36,17 @@ export type CarryoverPlan = {
 };
 
 const MS_DAY = 86_400_000;
-const QUERY_VISITS = [
-  "query CarryoverVisits($after: DateTime!, $before: DateTime!, $cursor: String) {",
-  " visits(first: 100, after: $cursor, filter: {startAt: {after: $after, before: $before}}) {",
-  "  nodes { id startAt isComplete assignedUsers(first: 10) { nodes { id } }",
-  "   job { id jobNumber title client { id name } } }",
-  "  pageInfo { hasNextPage endCursor }",
-  " }",
-  "}"
-].join("\n");
+function queryVisits(after: string, before: string): string {
+  return [
+    "query CarryoverVisits($cursor: String) {",
+    ' visits(first: 100, after: $cursor, filter: {startAt: {after: "' + after + '", before: "' + before + '"}}) {',
+    "  nodes { id startAt isComplete assignedUsers(first: 10) { nodes { id } }",
+    "   job { id jobNumber title client { id name } } }",
+    "  pageInfo { hasNextPage endCursor }",
+    " }",
+    "}"
+  ].join("\n");
+}
 const QUERY_JOB = [
   "query CarryoverJob($id: EncodedId!) {",
   " job(id: $id) { id",
@@ -167,10 +169,11 @@ async function fetchVisits(now: Date, action: MowingCarryoverAction, graphql: Gr
   const before = new Date(Date.parse(addLocalDays(today, 5) + "T00:00:00Z")).toISOString();
   const all: Visit[] = [];
   let cursor: string | null = null;
-  requireQuery(QUERY_VISITS);
+  const query = queryVisits(after, before);
+  requireQuery(query);
   for (let page = 0; page < 20; page++) {
     const connection = responseData<VisitConnection>(
-      await graphql(QUERY_VISITS, { after, before, cursor }), "visits"
+      await graphql(query, { cursor }), "visits"
     );
     all.push(...connection.nodes);
     if (!connection.pageInfo.hasNextPage) return all;
