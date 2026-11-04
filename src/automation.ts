@@ -49,6 +49,8 @@ function describeAction(action: AutomationAction): string {
   return "Run a Jobber GraphQL mutation.";
 }
 
+const runningAutomationIds = new Set<string>();
+
 export async function runAutomation(
   automationId: string,
   source: AutomationRun["source"],
@@ -58,6 +60,11 @@ export async function runAutomation(
   if (!automation) throw new Error("Automation not found.");
   if (source !== "preview" && automation.status !== "active") throw new Error("Only active automations can run.");
 
+  if (source !== "preview") {
+    if (runningAutomationIds.has(automationId)) throw new Error("This automation is already running.");
+    runningAutomationIds.add(automationId);
+  }
+  try {
   const run = createAutomationRun(automation.id, source);
   if (source === "preview") {
     const output = previewAutomation(automation);
@@ -102,6 +109,9 @@ export async function runAutomation(
     finishAutomationRun(run.id, "failed", null, message);
     await writeAudit({ action: "automation_run_failed", automationId, runId: run.id, source, error: message });
     throw error;
+  }
+  } finally {
+    if (source !== "preview") runningAutomationIds.delete(automationId);
   }
 }
 
