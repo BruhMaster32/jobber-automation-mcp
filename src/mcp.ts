@@ -3,6 +3,7 @@ import * as z from "zod/v4";
 import { jobberGraphql } from "./jobber.js";
 import { requireMutation, requireQuery } from "./graphql-safety.js";
 import { nextRunAt, previewAutomation, runAutomation } from "./automation.js";
+import { planMowingCarryover } from "./carryover.js";
 import {
   createAutomation,
   deleteAutomation,
@@ -16,12 +17,25 @@ import {
 const variablesSchema = z.record(z.string(), z.unknown()).optional();
 const triggerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("manual") }),
-  z.object({ type: z.literal("interval"), everyMinutes: z.number().int().min(1).max(525_600) })
+  z.object({ type: z.literal("interval"), everyMinutes: z.number().int().min(1).max(525_600) }),
+  z.object({ type: z.literal("daily"), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), timeZone: z.string().refine(value => {
+    try { new Intl.DateTimeFormat("en-US", { timeZone: value }); return true; } catch { return false; }
+  }, "Invalid IANA timezone") })
 ]);
 const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("log.message"), message: z.string().min(1).max(2_000) }),
   z.object({ type: z.literal("jobber.query"), query: z.string().min(1), variables: variablesSchema }),
-  z.object({ type: z.literal("jobber.mutation"), mutation: z.string().min(1), variables: variablesSchema })
+  z.object({ type: z.literal("jobber.mutation"), mutation: z.string().min(1), variables: variablesSchema }),
+  z.object({
+    type: z.literal("jobber.carryoverMowing"),
+    clientId: z.string().regex(/^[A-Za-z0-9+/=]+$/),
+    requiredAssigneeIds: z.array(z.string().regex(/^[A-Za-z0-9+/=]+$/)).min(1).max(8).refine(ids => new Set(ids).size === ids.length),
+    excludedJobNumbers: z.array(z.number().int().nonnegative()).default([]),
+    timeZone: z.string().refine(value => {
+      try { new Intl.DateTimeFormat("en-US", { timeZone: value }); return true; } catch { return false; }
+    }, "Invalid IANA timezone"),
+    maxMoves: z.number().int().min(1).max(25).default(15)
+  })
 ]);
 
 const result = (value: unknown) => ({
@@ -32,7 +46,7 @@ const result = (value: unknown) => ({
 export function buildMcpServer(): McpServer {
   const server = new McpServer(
     { name: "Jobber Automation MCP", version: "0.3.0" },
-    { instructions: "Use read tools first. Never call jobber_mutation without showing Gavin the exact proposed change and receiving his explicit approval." }
+    { instructions: "Use read tools first. Never call jobber_mutation without showing Gavin the exact proposed change and receiving his explicit approval. Preapproved automation mutations require showing the full bounded definition and explicit activation approval once. Do not activate unreviewed automations." }
   );
 
   server.registerTool("jobber_account", {
@@ -172,6 +186,20 @@ export function buildMcpServer(): McpServer {
     inputSchema: z.object({ id: z.string().uuid() }),
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false }
   }, async ({ id }) => result(await runAutomation(id, "preview")));
+
+  server.registerTool("automation_plan", {
+    description: "Read-only evaluation of the currently eligible and skipped visits for a scoped mowing carryover automation. Never changes Jobber.",
+    inputSchema: z.object({ id: z.string().uuid() }),
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false }
+  }, async ({ id }) => {
+    const automation = getAutomation(id);
+    if (!automation) throw new Error("Automation not found.");
+    const actions = automation.actions.filter(action => action.type === "jobber.carryoverMowing");
+    if (!actions.length) throw new Error("This automation has no mowing carryover action.");
+    const plans = [];
+    for (const action of actions) plans.push(await planMowingCarryover(action, jobberGraphql));
+    return result({ automationId: id, plans });
+  });
 
   server.registerTool("automation_run_now", {
     description: "Run an active automation now. Mutation automations with approvalPolicy=always require the exact confirmation phrase.",
