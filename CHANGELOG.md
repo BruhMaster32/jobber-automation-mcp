@@ -4,9 +4,21 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Local-time daily automation triggers with IANA timezone and daylight-saving handling
+- Scoped dynamic mowing carryover action and read-only live automation plan tool
+- Automated eligibility, duplicate, site-note, and visit-completion rechecks with per-visit auditing
+
+### Safety
+
+- Exact client and crew matching, excluded job numbers, per-run move limits, and all-day-only date changes
+- Unresolved access and do-not-mow notes block unattended changes; incomplete history fails closed
+- The existing approval policy applies to dynamic mutations; preapproval still requires reviewed activation
+
 ### Planned
 
-- Calendar schedules, conditions, retries, and idempotency controls
+- Advanced calendar/cron schedules, conditions, retries, and idempotency controls
 - Purpose-built Jobber visit and scheduling tools
 - Backup and restore commands
 
