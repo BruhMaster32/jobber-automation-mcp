@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { MowingCarryoverAction } from "./carryover.js";
 import { chmodSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -16,11 +17,13 @@ export type AutomationStatus = "draft" | "active" | "paused";
 export type ApprovalPolicy = "always" | "preapproved";
 export type AutomationTrigger =
   | { type: "manual" }
-  | { type: "interval"; everyMinutes: number };
+  | { type: "interval"; everyMinutes: number }
+  | { type: "daily"; time: string; timeZone: string };
 export type AutomationAction =
   | { type: "log.message"; message: string }
   | { type: "jobber.query"; query: string; variables?: Record<string, unknown> }
-  | { type: "jobber.mutation"; mutation: string; variables?: Record<string, unknown> };
+  | { type: "jobber.mutation"; mutation: string; variables?: Record<string, unknown> }
+  | MowingCarryoverAction;
 
 export type Automation = {
   id: string;

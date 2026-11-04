@@ -26,8 +26,8 @@ The MCP server defines the tools ChatGPT may call. The worker executes saved sch
 - Read-only GraphQL and confirmed-mutation escape hatches
 - SQLite persistence with WAL mode and a private database file
 - Automation create, list, get, update, activate, pause, preview, run-now, history, and delete tools
-- Manual and repeating interval triggers
-- Log, Jobber query, and Jobber mutation actions
+- Manual, repeating interval, and DST-safe daily local-time triggers
+- Log, Jobber query, Jobber mutation, and **guarded dynamic mowing carryover** actions
 - Draft-on-create and draft-after-edit review lifecycle
 - Per-run approval or explicitly preapproved automation policies
 - Background scheduler with run and audit history
@@ -40,6 +40,9 @@ The MCP server defines the tools ChatGPT may call. The worker executes saved sch
 - A Jobber mutation automation using `always` approval cannot mutate from the scheduler.
 - Its manual run requires `I CONFIRM THIS AUTOMATION RUN`.
 - A `preapproved` mutation automation can run unattended only after its complete definition is reviewed and activated.
+- Dynamic carryover is scoped to one Jobber client ID and an **exact required crew**; it never reassigns workers, moves completed visits, or touches unrelated clients.
+- Carryover skips excluded properties, later duplicate visits, and jobs with unresolved access, construction, animal, or do-not-mow notes. If notes or visit history cannot be fully reviewed, it skips the job.
+- Each moved visit is rechecked immediately before its write; every attempt and success is recorded in audit history. An approved maximum limits the number of possible moves per run.
 - Generic one-off mutations require clear explicit approval after the proposed change is shown. Accepted wording includes `yes`, `do it`, `approved`, and `I CONFIRM THIS JOBBER CHANGE`.
 - OAuth state is hashed, single-use, and expires after ten minutes.
 - Every mutation attempt and automation result is audited.
@@ -97,6 +100,41 @@ The included Compose file runs the OpenAI Secure MCP Tunnel alongside the server
 
 The MCP tool creates this as a draft. Preview it, activate it, and then inspect its history.
 
+## Dynamic nightly mowing carryover
+
+Configure this through the MCP `automation_create` tool. It is created as a **draft**; creating it does not change any Jobber visit. Fill in the **actual Jobber IDs** obtained using read-only tools. Use one client ID (not an unverified client name), and the exact allowed crew user IDs. Do not put private customer IDs or secrets in the public repository.
+
+```json
+{
+  "name": "Nightly mowing carryover",
+  "description": "Carry incomplete approved-crew mowing visits to tomorrow.",
+  "approvalPolicy": "preapproved",
+  "trigger": {
+    "type": "daily",
+    "time": "22:30",
+    "timeZone": "America/Indiana/Indianapolis"
+  },
+  "actions": [{
+    "type": "jobber.carryoverMowing",
+    "clientId": "<Jobber client encoded ID>",
+    "requiredAssigneeIds": [
+      "<Jonathan user encoded ID>",
+      "<Evan user encoded ID>",
+      "<Nolan user encoded ID>"
+    ],
+    "excludedJobNumbers": [227, 243],
+    "timeZone": "America/Indiana/Indianapolis",
+    "maxMoves": 15
+  }]
+}
+```
+
+The action examines **only all-day mowing visits scheduled for the current local day** which are still incomplete, are on a mowing job for that exact client, and are assigned to exactly the listed crew. It skips visits when the same job has another scheduled visit in the following two days. It checks up to 100 notes and 100 historical visits per job; if either history is truncated, it **skips rather than guessing**. Permanent do-not-mow notes are never automatically cleared. A temporary access blocker is treated as cleared only when a subsequent completed visit exists. Scheduled start and end dates are moved together to the **next calendar day**. The job remains assigned to the same crew.
+
+Use `automation_preview` to inspect the definition, and **`automation_plan`** to inspect the *live* read-only list of eligible and skipped visits before activation. The user must explicitly approve the complete scope before invoking `automation_activate` with its required phrase. Once a `preapproved` automation is active, it can carry over jobs unattended. Pause it with `automation_pause`.
+
+The bridge must be deployed and its worker enabled to execute this; committing a branch or merging a pull request does **not** update the running Docker container. Once the bridge is successfully deployed and the Jobber automation is activated, disable any redundant ChatGPT nightly review task to avoid duplicate notifications.
+
 ## Development
 
 ```bash
@@ -112,7 +150,7 @@ Versions use `MAJOR.MINOR.PATCH` Semantic Versioning. Every release receives a G
 ## Planned work
 
 - Named Jobber tools based on the authenticated schema instead of generic GraphQL
-- Calendar/cron, Jobber polling, and webhook-relay triggers
+- Advanced calendar/cron, Jobber polling, and webhook-relay triggers
 - Conditions, templates, notifications, retries, and idempotency keys
 - Embedded MCP Apps automation dashboard
 - Encrypted or operating-system-backed token storage
