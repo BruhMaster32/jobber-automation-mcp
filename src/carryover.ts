@@ -15,6 +15,7 @@ export type AuditWriter = (event: Record<string, unknown>) => Promise<void>;
 type Visit = {
   id: string;
   startAt: string;
+  endAt: string;
   isComplete: boolean;
   assignedUsers: { nodes: { id: string }[] };
   job: { id: string; jobNumber: number; title: string | null; client: { id: string; name: string } } | null;
@@ -40,7 +41,7 @@ function queryVisits(after: string, before: string): string {
   return [
     "query CarryoverVisits($cursor: String) {",
     ' visits(first: 100, after: $cursor, filter: {startAt: {after: "' + after + '", before: "' + before + '"}}) {',
-    "  nodes { id startAt isComplete assignedUsers(first: 10) { nodes { id } }",
+    "  nodes { id startAt endAt isComplete assignedUsers(first: 10) { nodes { id } }",
     "   job { id jobNumber title client { id name } } }",
     "  pageInfo { hasNextPage endCursor }",
     " }",
@@ -58,7 +59,7 @@ const QUERY_JOB = [
 const QUERY_RECHECK = [
   "query CarryoverRecheck($ids: [EncodedId!]!) {",
   " visits(first: 1, filter: {ids: $ids}) {",
-  "  nodes { id startAt isComplete assignedUsers(first: 10) { nodes { id } }",
+  "  nodes { id startAt endAt isComplete assignedUsers(first: 10) { nodes { id } }",
   "   job { id jobNumber title client { id name } } }",
   " }",
   "}"
@@ -131,6 +132,15 @@ function hasExactlyAssignedCrew(visit: Visit, requiredIds: string[]): boolean {
   return actual.length === requiredIds.length &&
     new Set(actual).size === actual.length &&
     requiredIds.every(id => actual.includes(id));
+}
+
+function isAllDay(visit: Visit, timeZone: string): boolean {
+  if (!visit.endAt) return false;
+  const start = zonedParts(new Date(visit.startAt), timeZone);
+  const end = zonedParts(new Date(visit.endAt), timeZone);
+  return start.hour === 0 && start.minute === 0 &&
+    end.hour === 23 && end.minute === 59 &&
+    localDate(visit.startAt, timeZone) === localDate(visit.endAt, timeZone);
 }
 
 function isMowing(visit: Visit): boolean {
@@ -212,6 +222,9 @@ export async function planMowingCarryover(
   for (const visit of candidates) {
     const job = visit.job!;
     const skip = (reason: string) => plan.skipped.push({ visitId: visit.id, jobNumber: job.jobNumber, reason });
+    if (!isAllDay(visit, action.timeZone)) {
+      skip("Only all-day mowing visits can be carried over"); continue;
+    }
     if (action.excludedJobNumbers.includes(job.jobNumber)) {
       skip("Excluded property or job"); continue;
     }
@@ -254,7 +267,8 @@ export async function executeMowingCarryover(
     if (!latest || latest.isComplete ||
         localDate(latest.startAt, action.timeZone) !== plan.fromDate ||
         latest.job?.client?.id !== action.clientId || !isMowing(latest) ||
-        !hasExactlyAssignedCrew(latest, action.requiredAssigneeIds)) {
+        !hasExactlyAssignedCrew(latest, action.requiredAssigneeIds) ||
+        !isAllDay(latest, action.timeZone)) {
       recheckSkipped.push(item.visitId); continue;
     }
     if (!/^[A-Za-z0-9+/=]+$/.test(item.visitId)) throw new Error("Invalid visit ID from Jobber.");
