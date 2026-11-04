@@ -172,7 +172,7 @@ async function fetchVisits(now: Date, action: MowingCarryoverAction, graphql: Gr
   const query = queryVisits(after, before);
   requireQuery(query);
   for (let page = 0; page < 20; page++) {
-    const connection = responseData<VisitConnection>(
+    const connection: VisitConnection = responseData<VisitConnection>(
       await graphql(query, { cursor }), "visits"
     );
     all.push(...connection.nodes);
@@ -200,7 +200,7 @@ export async function planMowingCarryover(
   const candidates = visits.filter(visit =>
     !visit.isComplete && localDate(visit.startAt, action.timeZone) === today &&
     visit.job?.client?.id === action.clientId && isMowing(visit) &&
-    hasExactlyAssignedCrew(visit, action)
+    hasExactlyAssignedCrew(visit, action.requiredAssigneeIds)
   ).sort((a, b) => a.id.localeCompare(b.id));
   if (candidates.length > action.maxMoves) {
     throw new Error("Found " + candidates.length + " visits, exceeding the approved limit of " + action.maxMoves + "; none moved.");
@@ -254,7 +254,7 @@ export async function executeMowingCarryover(
     if (!latest || latest.isComplete ||
         localDate(latest.startAt, action.timeZone) !== plan.fromDate ||
         latest.job?.client?.id !== action.clientId || !isMowing(latest) ||
-        !hasExactlyAssignedCrew(latest, action)) {
+        !hasExactlyAssignedCrew(latest, action.requiredAssigneeIds)) {
       recheckSkipped.push(item.visitId); continue;
     }
     if (!/^[A-Za-z0-9+/=]+$/.test(item.visitId)) throw new Error("Invalid visit ID from Jobber.");
