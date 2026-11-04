@@ -20,7 +20,7 @@ const now = new Date("2026-11-05T03:30:00Z"); // Nov 4, 10:30pm EST
 
 function visit(id: string, jobNumber: number, date = "2026-11-04T05:00:00Z", changes: Record<string, unknown> = {}) {
   return {
-    id, startAt: date, isComplete: false,
+    id, startAt: date, endAt: new Date(Date.parse(date) + 86_399_000).toISOString(), isComplete: false,
     assignedUsers: { nodes: crew.map(id => ({ id })) },
     job: { id: "Sm9i" + jobNumber, jobNumber, title: "Mowing", client: { id: clientId, name: "Kyle Tom" } },
     ...changes
@@ -53,6 +53,7 @@ function fakeGraphql(visits: ReturnType<typeof visit>[], details = new Map<strin
       const v = visits.find(v => v.id === id);
       if (!v) throw new Error("Missing visit");
       v.startAt = "2026-11-05T05:00:00Z";
+      v.endAt = "2026-11-06T04:59:59Z";
       return { data: { visitEditSchedule: { userErrors: [], visit: { id, startAt: v.startAt, endAt: v.startAt } } } };
     }
     throw new Error("Unexpected GraphQL operation");
@@ -107,6 +108,14 @@ describe("Kyle mowing carryover", () => {
     expect(result.moves).toHaveLength(0);
     expect(result.skipped).toHaveLength(5);
     expect(result.skipped.map(v => v.reason)).toContain("Do-not-mow instruction in job notes");
+  });
+
+  it("skips timed appointments instead of replacing their time window", async () => {
+    const v = visit("dmlzaXQx", 206, "2026-11-04T15:00:00Z", { endAt: "2026-11-04T16:00:00Z" });
+    const { graphql } = fakeGraphql([v]);
+    const plan = await planMowingCarryover(action, graphql, now);
+    expect(plan.moves).toHaveLength(0);
+    expect(plan.skipped[0].reason).toMatch(/all-day/);
   });
 
   it("does not carry over a temporarily blocked job without a later completed visit", async () => {
