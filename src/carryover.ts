@@ -137,7 +137,7 @@ function isMowing(visit: Visit): boolean {
   return Boolean(visit.job && /\bmow(?:ing)?\b/i.test(visit.job.title ?? ""));
 }
 
-const PERMANENT_BLOCK = /(?:do\s*not\s*mow|don'?t\s+(?:want\s+(?:us\s+)?to\s+)?mow|doesn'?t\s+want\s+us\s+mow|stop\s+mowing|no\s+longer\s+(?:mow|service)|not\s+to\s+mow)/i;
+const PERMANENT_BLOCK = /(?:do\s*not\s*mow|(?:don'?t|doesn'?t|didn'?t)\s+(?:want\s+(?:us\s+)?(?:to\s+)?)?mow(?:ing)?|(?:doesn'?t|didn'?t|don'?t)\s+want\s+(?:us\s+)?(?:to\s+)?mow(?:ing)?|stop\s+mowing|no\s+longer\s+(?:mow|service)|not\s+to\s+mow)/i;
 const TEMPORARY_BLOCK = /(?:construct(?:ion|ing)|roofing|roof\s+work|workers?\s+(?:outside|working)|work\s+trucks?|dogs?\s+(?:out|in\s+(?:the\s+)?yard)|locked?\s+gate|lock\s+on\s+(?:the\s+)?gate|can'?t\s+(?:get\s+(?:in|to)|access|mow)|cannot\s+(?:access|mow)|too\s+much\s+(?:stuff|debris)|too\s+tall|too\s+small\s+of\s+entrance|fence\s+(?:up|installed)|kids?\s+(?:out|outside)|someone\s+already\s+mows|already\s+mowed|says\s+he\s+mows)/i;
 
 function safetyBlock(job: JobDetail, action: MowingCarryoverAction, today: string): string | null {
