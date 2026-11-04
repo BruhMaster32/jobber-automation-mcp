@@ -1,5 +1,6 @@
 import { requireMutation, requireQuery } from "./graphql-safety.js";
 import { jobberGraphql } from "./jobber.js";
+import { executeMowingCarryover, nextDailyRunAt } from "./carryover.js";
 import {
   createAutomationRun,
   finishAutomationRun,
@@ -14,6 +15,9 @@ import {
 
 export function nextRunAt(automation: Pick<Automation, "trigger" | "status">, from = Date.now()): number | null {
   if (automation.status !== "active" || automation.trigger.type === "manual") return null;
+  if (automation.trigger.type === "daily") {
+    return nextDailyRunAt(automation.trigger.time, automation.trigger.timeZone, from);
+  }
   return from + automation.trigger.everyMinutes * 60_000;
 }
 
@@ -29,10 +33,10 @@ export function previewAutomation(automation: Automation) {
       step: index + 1,
       type: action.type,
       effect: describeAction(action),
-      changesJobber: action.type === "jobber.mutation"
+      changesJobber: action.type === "jobber.mutation" || action.type === "jobber.carryoverMowing"
     })),
     warnings: [
-      ...(automation.actions.some(action => action.type === "jobber.mutation") ? ["This automation can change Jobber data."] : []),
+      ...(automation.actions.some(action => action.type === "jobber.mutation" || action.type === "jobber.carryoverMowing") ? ["This automation can change Jobber data."] : []),
       ...(automation.approvalPolicy === "always" ? ["Scheduled mutations will be blocked until the approval policy is changed to preapproved."] : [])
     ]
   };
@@ -41,6 +45,7 @@ export function previewAutomation(automation: Automation) {
 function describeAction(action: AutomationAction): string {
   if (action.type === "log.message") return `Record a log message: ${action.message}`;
   if (action.type === "jobber.query") return "Run a read-only Jobber GraphQL query.";
+  if (action.type === "jobber.carryoverMowing") return "Move up to " + action.maxMoves + " incomplete mowing visits for one client (" + action.clientId + ") to the next local day, only when assigned to exactly " + action.requiredAssigneeIds.length + " approved crew members. Excludes jobs " + action.excludedJobNumbers.join(", ") + ", existing future visits, and unresolved safety/access notes; logs each change.";
   return "Run a Jobber GraphQL mutation.";
 }
 
@@ -77,6 +82,9 @@ export async function runAutomation(
       } else if (action.type === "jobber.query") {
         requireQuery(action.query);
         const response = await jobberGraphql(action.query, action.variables ?? {});
+        steps.push({ step: index + 1, type: action.type, response });
+      } else if (action.type === "jobber.carryoverMowing") {
+        const response = await executeMowingCarryover(action, jobberGraphql, writeAudit, automationId, run.id);
         steps.push({ step: index + 1, type: action.type, response });
       } else {
         requireMutation(action.mutation, "I CONFIRM THIS JOBBER CHANGE");
